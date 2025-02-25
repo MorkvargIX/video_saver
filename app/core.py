@@ -1,9 +1,10 @@
 from aiogram import Bot, Dispatcher, types
 from aiogram import F
+from aiogram.types.input_file import FSInputFile
 
 from app.settings import TOKEN, URL_PATTERN, ALLOWED_USERS
 from app.logger import logger
-from app.utils import is_video_url
+from app.utils import is_video_url, download_video
 
 
 bot = Bot(token=TOKEN)
@@ -25,6 +26,15 @@ async def handle_message(message: types.Message):
     video_url = urls[0]
     if is_video_url(video_url):
         logger.info(f"Video URL found: {video_url}")
-        await message.reply(f"📽️ Url has been found")
+        try:
+            video_file_path = download_video(video_url)
+            logger.info(f"Video downloaded successfully: {video_file_path}")
+
+            await message.reply_document(FSInputFile(video_file_path))
+            # os.remove(video_file_path)
+
+        except Exception as e:
+            logger.error(f"Error downloading video: {e}")
+            await message.reply("⚠️ Error downloading video.")
     else:
         await message.reply(f"Current url is not video or not in allowed hosts {{youtube, vimeo}}")
